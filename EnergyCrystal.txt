@@ -1,0 +1,85 @@
+-- Referensi ke objek-objek penting
+local crystal = script.Parent
+local health = crystal:WaitForChild("Health")
+local maxHealth = crystal:WaitForChild("MaxHealth")
+local billboardGui = crystal:WaitForChild("BillboardGui")
+local healthBar = billboardGui.Background.HealthBar
+
+-- Pengaturan
+local DAMAGE_PER_SECOND = 10
+local COINS_PER_DAMAGE = 1
+local ATTACK_RANGE = 15 -- Jarak pet bisa menyerang
+local RESPAWN_TIME = 10 -- Waktu (detik) setelah hancur
+
+-- Fungsi untuk memperbarui tampilan Health Bar
+local function updateHealthBar()
+	local percentage = health.Value / maxHealth.Value
+	healthBar.Size = UDim2.new(percentage, 0, 1, 0)
+end
+
+-- Hubungkan fungsi update ke event 'Changed'
+-- Ini lebih efisien daripada loop
+health.Changed:Connect(updateHealthBar)
+
+-- Fungsi utama untuk logika kristal
+local function crystalLogic()
+	-- Loop selama kristal masih "hidup"
+	while health.Value > 0 do
+		local petIsNear = false
+
+		-- Cek semua pemain dan pet mereka
+		for _, player in ipairs(game.Players:GetPlayers()) do
+			local character = player.Character
+			-- Cari pet milik pemain
+			if character then
+				local pet = workspace:FindFirstChild(player.Name .. "'s Pet") -- Kita akan beri nama pet seperti ini
+				if pet and pet.PrimaryPart then
+					-- Cek jarak antara pet dan kristal
+					local distance = (crystal.Position - pet.PrimaryPart.Position).Magnitude
+					if distance <= ATTACK_RANGE then
+						petIsNear = true
+						-- Kurangi health kristal
+						health.Value = health.Value - (DAMAGE_PER_SECOND / 10)
+						-- Beri koin ke pemain
+						local leaderstats = player:FindFirstChild("leaderstats")
+						if leaderstats then
+							leaderstats.Coins.Value = leaderstats.Coins.Value + COINS_PER_DAMAGE
+						end
+					end
+				end
+			end
+		end
+		task.wait(0.1)
+	end
+	
+	-- -- Jika loop selesai, berarti health habis -- --
+	
+	-- Animasi hancur (menghilang perlahan)
+	billboardGui.Enabled = false
+	for i = 1, 10 do
+		crystal.Transparency = i / 10
+		task.wait(0.05)
+	end
+	
+	-- Tunggu sebelum muncul kembali
+	task.wait(RESPAWN_TIME)
+	
+	-- Munculkan kembali (Respawn)
+	health.Value = maxHealth.Value
+	crystal.Transparency = 0
+	billboardGui.Enabled = true
+	
+	-- Mulai lagi logikanya dari awal
+	crystalLogic()
+end
+
+-- -- Sedikit Modifikasi pada Skrip PetManager -- --
+-- Agar skrip ini bisa menemukan pet, kita perlu memberi nama unik pada setiap pet.
+-- Buka skrip PetManager Anda dan cari baris `newPet:SetAttribute("IsPet", true)`.
+-- Tepat di bawahnya, tambahkan baris ini:
+-- newPet.Name = player.Name .. "'s Pet"
+-- Ini akan memberi nama seperti "GrowNecro's Pet" pada pet yang muncul.
+
+-- Mulai logika kristal
+updateHealthBar() -- Atur bar ke posisi awal
+crystalLogic()
