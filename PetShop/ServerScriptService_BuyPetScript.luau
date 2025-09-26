@@ -16,8 +16,10 @@ local function spawnPet(petFrameName, player)
 		local spawnBox = workspace:WaitForChild("SpawnBox") -- Assuming you have a part named 'SpawnBox'
 
 		-- Position the pet randomly inside the spawn box
-		local randomX = math.random(spawnBox.Position.X - spawnBox.Size.X/2, spawnBox.Position.X + spawnBox.Size.X/2)
-		local randomZ = math.random(spawnBox.Position.Z - spawnBox.Size.Z/2, spawnBox.Position.Z + spawnBox.Size.Z/2)
+		local randomX =
+			math.random(spawnBox.Position.X - spawnBox.Size.X / 2, spawnBox.Position.X + spawnBox.Size.X / 2)
+		local randomZ =
+			math.random(spawnBox.Position.Z - spawnBox.Size.Z / 2, spawnBox.Position.Z + spawnBox.Size.Z / 2)
 
 		newPet:SetPrimaryPartCFrame(CFrame.new(randomX, spawnBox.Position.Y, randomZ))
 		newPet.Parent = workspace
@@ -27,13 +29,27 @@ local function spawnPet(petFrameName, player)
 end
 
 BuyPetEvent.OnServerEvent:Connect(function(player, petFrameName, price)
-	-- Check if the player can afford the pet (you'd need to implement this)
-	-- For example: if player.leaderstats.Coins.Value >= price then
+	-- 1. Get the player's current coin value
+	local leaderstats = player:FindFirstChild("leaderstats")
 
-	-- For a simple example, we'll just spawn it
-	spawnPet(petFrameName, player)
+	-- Safety check to ensure leaderstats and Coins exist
+	if not leaderstats or not leaderstats:FindFirstChild("Coins") then
+		warn("Player " .. player.Name .. " does not have 'Coins' in leaderstats.")
+		return -- Stop execution if coins aren't set up
+	end
 
-	-- Example for simple currency deduction:
-	-- player.leaderstats.Coins.Value = player.leaderstats.Coins.Value - price
-	-- end
+	local coinsValue = leaderstats.Coins
+
+	-- 2. Check if the player can afford the pet
+	if coinsValue.Value >= price then
+		-- COIN DECREASE IMPLEMENTATION
+		coinsValue.Value = coinsValue.Value - price
+
+		-- 3. Spawn the pet
+		spawnPet(petFrameName, player)
+	else
+		-- Optional: Provide feedback to the player (e.g., using a RemoteEvent to display a UI message)
+		print(player.Name .. " tried to buy " .. petFrameName .. " but cannot afford the price of " .. price)
+		-- You could fire a RemoteEvent here: ReplicatedStorage.SendNotification:FireClient(player, "Not enough coins!")
+	end
 end)
